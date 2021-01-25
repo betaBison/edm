@@ -1,12 +1,12 @@
-# Euclidean Distance Matrix (EDM) Library and Examples
+# Euclidean Distance Matrix (EDM) Library
 
 Examples and algorithms implemented from the paper
-_Euclidean Distance Matrices: A Short Walk Through Theory, Algorithms and Applications_ by Ivan Dokmanic, Reza Parhizkar, Juri Ranieri and Martin Vetterli.
+_Euclidean Distance Matrices: A Short Walk Through Theory, Algorithms and Applications_ by Ivan Dokmanic, Reza Parhizkar, Juri Ranieri, and Martin Vetterli.
 
 ## Install
 Install dependencies  
 ```
-pip3 install numpy networkx matplotlib
+pip3 install numpy matplotlib networkx
 ```
 
 ## Run
