@@ -6,7 +6,6 @@
 ########################################################################
 
 import numpy as np
-import scipy as sp
 
 def classic_mds(D,d):
     """
@@ -24,7 +23,7 @@ def classic_mds(D,d):
 
     G = -0.5*J.dot(D).dot(J)
 
-    U, S, V = sp.linalg.svd(G)
+    U, S, V = np.linalg.svd(G)
     S = np.diag(S)[:d,:]
     X = np.sqrt(S).dot(U.T)
     return X
