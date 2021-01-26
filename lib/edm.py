@@ -41,3 +41,30 @@ def noisy_edm(X,std_dev):
             D[i,j] = sqrd_dist
             D[j,i] = sqrd_dist
     return D
+
+def rs_edm(R,S,noise):
+    """
+    Desc:
+        creates edm from receiver and transmitter points
+    Input(s):
+        R (numpy array: d x num receivers) : locations of receivers
+        S (numpy array: d x num transmitters): locations of transmitters
+        noise (tuple (min,max)) : noise ranges, uniform sample
+    Output(s):
+        D (numpy array: (num_r + num_s) x (num_r + num_s) ) : euclidean
+            distance matrix
+    """
+    num_r = R.shape[1]
+    num_s = S.shape[1]
+
+    RS_pre = np.diag(R.T.dot(R)).reshape(-1,1).dot(np.ones((1,num_s))) \
+       - 2.*R.T.dot(S) \
+       + np.ones((num_r,1)).dot(np.diag(S.T.dot(S)).reshape(1,-1))
+    RS_noise = np.random.uniform(low=noise[0],high=noise[1],
+                            size=(num_r,num_s))**2
+    RS = np.add(RS_pre,RS_noise)
+    D = np.zeros((num_r+num_s,num_r+num_s))
+    D[:num_r,num_r:] = RS
+    D = D.T + D
+
+    return D

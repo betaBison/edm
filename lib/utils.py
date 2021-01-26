@@ -85,3 +85,31 @@ def mask_matrix(G):
                 W[i,j] = 1.
                 W[j,i] = 1.
     return W
+
+def align(X,Xa,Y):
+    """
+    Desc:
+        algins based on known positions
+    Input(s):
+        X (numpy array: d x n) : locations of nodes in graph
+        Xa (numpy array: d x (< n)) : locations of subset of known
+        Y (numpy array: d x (< n)) : known locations of subset
+    Output(s):
+        X_aligned (numpy array: d x n) : aligned nodes
+    """
+    # find centroids
+    xa_c = Xa.dot(np.ones((Xa.shape[1],1)))/Xa.shape[1]
+    y_c = Y.dot(np.ones((Y.shape[1],1)))/Y.shape[1]
+    Xa_bar = Xa - np.tile(xa_c,(1,Xa.shape[1]))
+    Y_bar = Y - np.tile(y_c,(1,Y.shape[1]))
+
+    # calculate rotation
+    U, S, Vh = np.linalg.svd(Xa_bar.dot(Y_bar.T))
+    V = Vh.T
+    R = V.dot(U.T)
+
+    # translation and rotation
+    row_1 = np.ones((1,X.shape[1]))
+    X_aligned = R.dot(X - xa_c.dot(row_1)) + y_c.dot(row_1)
+
+    return X_aligned

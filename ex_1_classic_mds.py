@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 from lib.edm import noisy_edm
 from lib.classic_mds import classic_mds
-from lib.graph_utils import add_all_edges
+from lib.utils import add_all_edges
 
 ############################ PARAMETERS ################################
 

@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 warnings.filterwarnings("ignore", category=UserWarning)
 
 from lib.edm import noisy_edm
-from lib.graph_utils import *
+from lib.utils import *
 from lib.alternating_descent import alternating_descent
 
 ############################ PARAMETERS ################################
