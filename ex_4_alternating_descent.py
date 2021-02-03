@@ -37,7 +37,7 @@ def points2graph(X,r):
 
 def compute_alt_descent(X,W,d):
     D = np.multiply(W,noisy_edm(X,std_dev))
-    X_mds = alternating_descent(D,W,d)
+    X_mds,t = alternating_descent(D,W,d)
     return X_mds
 
 def graph(G,ax):

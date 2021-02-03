@@ -66,5 +66,6 @@ def rs_edm(R,S,noise):
     D = np.zeros((num_r+num_s,num_r+num_s))
     D[:num_r,num_r:] = RS
     D = D.T + D
+    D[num_r:,num_r:] = edm(S)
 
     return D

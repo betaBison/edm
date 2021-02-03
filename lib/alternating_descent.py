@@ -21,7 +21,7 @@ def alternating_descent(D,W,dims):
 
     ########################## PARAMETERS ##############################
 
-    MAX_ITER = 200
+    MAX_ITER = 500
 
     CONVERGE_DISTANCE = 1E-10
 
@@ -78,4 +78,4 @@ def alternating_descent(D,W,dims):
     if T == MAX_ITER:
         print("forced break after",T,"iterations")
 
-    return X
+    return X,T
