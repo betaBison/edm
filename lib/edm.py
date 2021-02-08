@@ -69,3 +69,22 @@ def rs_edm(R,S,noise):
     D[num_r:,num_r:] = edm(S)
 
     return D
+
+def rs_edm_from_ranges(S,ranges):
+    """
+    Desc:
+        creates edm from receiver and transmitter points
+    Input(s):
+        S (numpy array: d x num transmitters): locations of transmitters
+        ranges (numpy array: 1 x num_transmitters): ranges to trasmitters
+    Output(s):
+        D (numpy array: (1 + num_s) x (1 + num_s) ) : euclidean
+            distance matrix
+    """
+    num_s = S.shape[1]
+    D = np.zeros((num_s+1,num_s+1))
+    D[0,1:] = ranges**2
+    D[1:,0] = ranges**2
+    D[1:,1:] = edm(S)
+
+    return D

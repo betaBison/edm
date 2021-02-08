@@ -48,58 +48,6 @@ def rs_mask(num_r,num_s):
     W[num_r:,num_r:] = np.ones((num_s,num_s))
     return W
 
-def graph(R,S,R_ls,R_mds,R_ad):
-    fig = plt.figure()
-
-    # receivers plot
-    ax = fig.add_subplot(121, projection="3d")
-    ax.scatter(R[0,:],R[1,:],R[2,:],label="receivers truth")
-    ax.scatter(S[0,:],S[1,:],S[2,:],label="satellites truth")
-
-    X = np.hstack((R[0,:],S[0,:]))
-    Y = np.hstack((R[1,:],S[1,:]))
-    Z = np.hstack((R[2,:],S[2,:]))
-
-    # Create cubic bounding box to simulate equal aspect ratio
-    max_range = np.array([X.max()-X.min(), Y.max()-Y.min(), Z.max()-Z.min()]).max()
-    Xb = 0.5*max_range*np.mgrid[-1:2:2,-1:2:2,-1:2:2][0].flatten() + 0.5*(X.max()+X.min())
-    Yb = 0.5*max_range*np.mgrid[-1:2:2,-1:2:2,-1:2:2][1].flatten() + 0.5*(Y.max()+Y.min())
-    Zb = 0.5*max_range*np.mgrid[-1:2:2,-1:2:2,-1:2:2][2].flatten() + 0.5*(Z.max()+Z.min())
-    for xb, yb, zb in zip(Xb, Yb, Zb):
-       ax.plot([xb], [yb], [zb], 'w')
-
-    ax.set_xlabel('X [m]')
-    ax.set_ylabel('Y [m]')
-    ax.set_zlabel('Z [m]')
-    plt.legend()
-
-    # receivers plot
-    ax = fig.add_subplot(122, projection="3d")
-    ax.scatter(R[0,:],R[1,:],R[2,:],label="receivers truth")
-    ax.scatter(R_ls[0,:],R_ls[1,:],R_ls[2,:],label="least squares")
-    ax.scatter(R_mds[0,:],R_mds[1,:],R_mds[2,:],label="mds w/ full knowledge")
-    ax.scatter(R_ad[0,:],R_ad[1,:],R_ad[2,:],label="alternating descent")
-    X = np.hstack((R[0,:],R_ls[0,:],R_mds[0,:],R_ad[0,:]))
-    Y = np.hstack((R[1,:],R_ls[1,:],R_mds[1,:],R_ad[1,:]))
-    Z = np.hstack((R[2,:],R_ls[2,:],R_mds[2,:],R_ad[2,:]))
-    # Create cubic bounding box to simulate equal aspect ratio
-    max_range = np.array([X.max()-X.min(), Y.max()-Y.min(), Z.max()-Z.min()]).max()
-    Xb = 0.5*max_range*np.mgrid[-1:2:2,-1:2:2,-1:2:2][0].flatten() + 0.5*(X.max()+X.min())
-    Yb = 0.5*max_range*np.mgrid[-1:2:2,-1:2:2,-1:2:2][1].flatten() + 0.5*(Y.max()+Y.min())
-    Zb = 0.5*max_range*np.mgrid[-1:2:2,-1:2:2,-1:2:2][2].flatten() + 0.5*(Z.max()+Z.min())
-    for xb, yb, zb in zip(Xb, Yb, Zb):
-       ax.plot([xb], [yb], [zb], 'w')
-
-    ax.set_xlabel('X [m]')
-    ax.set_ylabel('Y [m]')
-    ax.set_zlabel('Z [m]')
-    plt.legend()
-
-    # give everything enough room
-    fig.set_size_inches(8, 4.5)
-    fig.tight_layout()
-    plt.show()
-
 def error(truth,estimate):
     return np.mean(np.linalg.norm(truth-estimate,axis=0)**2)
 
@@ -181,10 +129,24 @@ for nc in range(n_compare):
 
 
     # truth_edm = edm(np.hstack((R,S)))
-    # X_mds_full = classic_mds(D,dims)
+    R_mds = np.zeros(R.shape)
+    time0 = time.time()
+    for rad_i in range(num_r):
+        Dr_1 = np.hstack((np.array([[D[rad_i,rad_i]]]),
+                          D[rad_i,num_r:].reshape(1,-1)))
+        Dr_2 = np.hstack((D[num_r:,rad_i].reshape(-1,1),
+                          D[num_r:,num_r:]))
+        Dr = np.vstack((Dr_1,Dr_2))
+        X_mds_r = classic_mds(Dr,dims)
+        X_mds_r = align(X_mds_r,X_mds_r[:,1:,],S)
+        R_mds[:,rad_i] = X_mds_r[:,0]
     # X_mds_full = align(X_mds_full,X_mds_full[:,R.shape[1]:],S)
     # R_mds = X_mds_full[:,:R.shape[1]]
-    # print("mds error:",error(R,R_mds))
+    mds_time = time.time() - time0
+    mds_error = error(R,R_mds)
+    X_mds_full = np.hstack((R_mds,S))
+    sstress_mds = sstress(W,X_mds_full,D)
+    print("mds error:",mds_error)
 
 
     # least squares
@@ -206,14 +168,16 @@ ax1 = fig.add_subplot(221)
 plt.plot(range(R_ls_vec.shape[2]),R_ls_errors,label="least squares")
 plt.plot(range(X_ad_vec.shape[2]),R_ad_errors,label="alternating descent")
 plt.plot(range(max_its+1),R_alt_ad_errors,label="clustered alternating descent")
+plt.plot([0,max_its+1],[mds_error,mds_error],label="classical mds")
 plt.xlabel("iterations")
 plt.title("Mean Squared Error")
 plt.legend()
 
 ax2 = fig.add_subplot(222)
+plt.plot(range(R_ls_vec.shape[2]),sstress_ls,label="least squares")
 plt.plot(range(X_ad_vec.shape[2]),sstress_ad,label="alternating descent")
 plt.plot(range(max_its+1),sstress_alt_ad,label="clustered alternating descent")
-plt.plot(range(R_ls_vec.shape[2]),sstress_ls,label="least squares")
+plt.plot([0,max_its+1],[sstress_mds,sstress_mds],label="classical mds")
 plt.title("S-stress")
 plt.xlabel("iterations")
 plt.legend()
@@ -222,22 +186,20 @@ ax3 = fig.add_subplot(223)
 plt.plot(range(len(ls_time_vec)),np.cumsum(ls_time_vec),label="least squares")
 plt.plot(range(len(ad_time_vec)),np.cumsum(ad_time_vec),label="alternating descent")
 plt.plot([0.,max_its-1],np.cumsum(aad_time_vec),label="alt ad")
+plt.plot([0.,max_its-1],[mds_time,mds_time],label="classical mds")
+plt.legend()
+
+ax4 = fig.add_subplot(224)
+plt.plot([0,max_its],[0,0])
+ad_data = np.divide(np.array(R_ls_errors) - np.array(R_ad_errors),np.array(R_ls_errors))
+plt.plot(range(X_ad_vec.shape[2]),ad_data,label="alternating descent")
+alt_ad_data = np.divide(np.array(R_ls_errors) - np.array(R_alt_ad_errors),np.array(R_ls_errors))
+plt.plot(range(max_its+1),alt_ad_data,label="clustered alternating descent")
+mds_data = np.divide(np.array(R_ls_errors) - mds_error,np.array(R_ls_errors))
+plt.plot(range(max_its+1),mds_data,label="classical mds")
+plt.ylim([-2,2])
 plt.legend()
 
 
 
 plt.show()
-
-# fig = plt.figure()
-# ax1 = fig.add_subplot(121)
-# ax1.boxplot([error_ls,error_ad])
-# plt.xticks([1,2],['least squares','alternating descent'])
-# plt.title("Summed Error")
-#
-# ax2 = fig.add_subplot(122)
-# ax2.boxplot(its_ad)
-# plt.title("Alternating Descent Iterations")
-
-
-# graph all results
-# graph(R,S,R_ls,R_mds,R_ad)

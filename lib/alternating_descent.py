@@ -78,14 +78,14 @@ def alternating_descent(D,W,dims,intermidate_solutions=False):
         X_vec = np.concatenate((X_vec,np.expand_dims(X.copy(),axis=2)),axis=2)
 
         if np.linalg.norm(X - X_old) < CONVERGE_DISTANCE:
-            print("converged after",T,"iterations, breaking...")
+            print("ad converged after",T,"iterations, breaking...")
             break
         else:
             T += 1
             X_old = X.copy()
 
     if T == MAX_ITER:
-        print("forced break after",T,"iterations")
+        print("ad forced break after",T,"iterations")
 
     if intermidate_solutions:
         return X_vec,T,time_vec
@@ -163,14 +163,14 @@ def alt_ad(D,W,dims,S,MAX_ITER=50,intermidate_solutions=False):
         X_vec = np.concatenate((X_vec,np.expand_dims(X.copy(),axis=2)),axis=2)
 
         if np.linalg.norm(X - X_old) < CONVERGE_DISTANCE and not intermidate_solutions:
-            print("converged after",T,"iterations, breaking...")
+            print("ad converged after",T,"iterations, breaking...")
             break
         else:
             T += 1
             X_old = X.copy()
 
     if T == MAX_ITER:
-        print("forced break after",T,"iterations")
+        print("ad forced break after",T,"iterations")
 
     if intermidate_solutions:
         return X_vec,T,time_vec
