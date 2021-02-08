@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ########################################################################
 # Author(s):    D. Knowles
-# Date:         25 Jan 2021
+# Date:         03 Feb 2021
 # Desc:         compare least squares with EDM methods
 #               Problem: localize receivers on the ground
 #               Method 1: use least squares to independently localize
@@ -11,6 +11,7 @@
 #                   directly
 ########################################################################
 
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -27,11 +28,13 @@ from lib.alternating_descent import alternating_descent, alt_ad
 n_sats = 10
 # satellite noise added to ranges, uniformly sampled between min and max
 # noise = (0.,0.)
-noise = (-2.,2.)
-# noise = (-8.,8.)
+# noise = (-2.,2.)
+noise = (-8.,8.)
 # noise = (-50.,50.)
 # number of comparisons to perform (default = 1)
-n_compare = 10
+n_compare = 1
+# MAXIMUM ITERATIONS
+max_its = 50
 
 ########################################################################
 
@@ -98,14 +101,17 @@ def graph(R,S,R_ls,R_mds,R_ad):
     plt.show()
 
 def error(truth,estimate):
-    return np.sum(np.linalg.norm(truth-estimate,axis=0)**2)
+    return np.mean(np.linalg.norm(truth-estimate,axis=0)**2)
+
+def sstress(W,X,D_est):
+    return np.linalg.norm(np.multiply(W,edm(X) - D_est),'fro')
 
 ########################################################################
 error_ls = []
 error_ad = []
 its_ad = []
-# for nc in range(n_compare):
-while len(error_ad) < n_compare:
+for nc in range(n_compare):
+# while len(error_ad) < n_compare:
     print("Number Compare:",len(error_ad))
     # receiver positions
     R = np.array([[-50.,50.,50.,-50.,0.],
@@ -127,46 +133,111 @@ while len(error_ad) < n_compare:
 
     D = rs_edm(R,S,noise)
 
-
-
-    # mds
-    truth_edm = edm(np.hstack((R,S)))
-    X_mds_full = classic_mds(truth_edm,dims)
-    X_mds_full = align(X_mds_full,X_mds_full[:,R.shape[1]:],S)
-    R_mds = X_mds_full[:,:R.shape[1]]
-    # print("mds error:",error(R,R_mds))
-
     # alternating descent
     W = rs_mask(R.shape[1],S.shape[1])
-    X_ad,t_ad = alternating_descent(D,W,dims)
-    # X_ad,t_ad = alt_ad(D,W,dims,S,500)
-    X_ad = align(X_ad,X_ad[:,R.shape[1]:],S)
-    R_ad = X_ad[:,:R.shape[1]]
-    if error(R,R_ad) > 1:
-        print("need redo: ",error(R,R_ad))
-        continue
-    print("alternating descent error:",error(R,R_ad))
-    error_ad.append(error(R,R_ad))
-    its_ad.append(t_ad)
+    X_ad_vec,t_ad,ad_time_vec = alt_ad(D,W,dims,S,max_its,True)
+    R_ad_errors = []
+    sstress_ad = []
+    for its in range(X_ad_vec.shape[2]):
+        X_ad = align(X_ad_vec[:,:,its],X_ad_vec[:,R.shape[1]:,its],S)
+        R_ad = X_ad[:,:R.shape[1]]
+        R_ad_errors.append(error(R,R_ad))
+        sstress_ad.append(sstress(W,X_ad,D))
+    # if error(R,R_ad) > 1:
+        # print("need redo: ",error(R,R_ad))
+        # continue
+    print("alternating descent error:",R_ad_errors[-1])
+    # its_ad.append(t_ad)
+
+    # clustered alternating_descent
+    num_r = R.shape[1]
+    R_alt_ad = np.zeros((dims,num_r,max_its+1))
+    sstress_alt_ad = []
+    time0 = time.time()
+    for rad_i in range(num_r):
+        Dr_1 = np.hstack((np.array([[D[rad_i,rad_i]]]),
+                          D[rad_i,num_r:].reshape(1,-1)))
+        Dr_2 = np.hstack((D[num_r:,rad_i].reshape(-1,1),
+                          D[num_r:,num_r:]))
+        Dr = np.vstack((Dr_1,Dr_2))
+        Wr = rs_mask(1,S.shape[1])
+        X_alt_r,t_ad,tv = alt_ad(Dr,Wr,dims,S,max_its,True)
+
+        for its in range(max_its+1):
+            X_alt_r_aligned = align(X_alt_r[:,:,its],X_alt_r[:,1:,its],S)
+            R_alt_ad[:,rad_i,its] = X_alt_r_aligned[:,0]
+        if rad_i == 0:
+            aad_time_vec = [0.0,time.time()-time0]
+    R_alt_ad_errors = []
+    for its in range(max_its+1):
+        R_alt_ad_errors.append(error(R,R_alt_ad[:,:,its]))
+        X_alt_ad = np.hstack((R_alt_ad[:,:,its],S))
+        sstress_alt_ad.append(sstress(W,X_alt_ad,D))
+    print("clustered ad error:",R_alt_ad_errors[-1])
+
+        # print("Dr:",Dr)
+
+    # mds
+
+
+    # truth_edm = edm(np.hstack((R,S)))
+    # X_mds_full = classic_mds(D,dims)
+    # X_mds_full = align(X_mds_full,X_mds_full[:,R.shape[1]:],S)
+    # R_mds = X_mds_full[:,:R.shape[1]]
+    # print("mds error:",error(R,R_mds))
+
 
     # least squares
-    R_ls = least_squares(D,S)
-    error(R,R_ls)
-    print("least squares error:",error(R,R_ls))
-    error_ls.append(error(R,R_ls))
+    R_ls_vec,ls_time_vec = least_squares(D,S,max_its,True)
+    R_ls_errors = []
+    sstress_ls = []
+    for its in range(R_ls_vec.shape[2]):
+        R_ls_errors.append(error(R,R_ls_vec[:,:,its]))
+        X_ls = np.hstack((R_ls_vec[:,:,its],S))
+        sstress_ls.append(sstress(W,X_ls,D))
+    print("least squares error:",R_ls_errors[-1])
+    # error_ls.append(error(R,R_ls))
 
     # print("R_ad:",R_ad)
 
-fig = plt.figure()
-ax1 = fig.add_subplot(121)
-ax1.boxplot([error_ls,error_ad])
-plt.xticks([1,2],['least squares','alternating descent'])
-plt.title("Summed Error")
 
-ax2 = fig.add_subplot(122)
-ax2.boxplot(its_ad)
-plt.title("Alternating Descent Iterations")
+fig = plt.figure()
+ax1 = fig.add_subplot(221)
+plt.plot(range(R_ls_vec.shape[2]),R_ls_errors,label="least squares")
+plt.plot(range(X_ad_vec.shape[2]),R_ad_errors,label="alternating descent")
+plt.plot(range(max_its+1),R_alt_ad_errors,label="clustered alternating descent")
+plt.xlabel("iterations")
+plt.title("Mean Squared Error")
+plt.legend()
+
+ax2 = fig.add_subplot(222)
+plt.plot(range(X_ad_vec.shape[2]),sstress_ad,label="alternating descent")
+plt.plot(range(max_its+1),sstress_alt_ad,label="clustered alternating descent")
+plt.plot(range(R_ls_vec.shape[2]),sstress_ls,label="least squares")
+plt.title("S-stress")
+plt.xlabel("iterations")
+plt.legend()
+
+ax3 = fig.add_subplot(223)
+plt.plot(range(len(ls_time_vec)),np.cumsum(ls_time_vec),label="least squares")
+plt.plot(range(len(ad_time_vec)),np.cumsum(ad_time_vec),label="alternating descent")
+plt.plot([0.,max_its-1],np.cumsum(aad_time_vec),label="alt ad")
+plt.legend()
+
+
+
+plt.show()
+
+# fig = plt.figure()
+# ax1 = fig.add_subplot(121)
+# ax1.boxplot([error_ls,error_ad])
+# plt.xticks([1,2],['least squares','alternating descent'])
+# plt.title("Summed Error")
+#
+# ax2 = fig.add_subplot(122)
+# ax2.boxplot(its_ad)
+# plt.title("Alternating Descent Iterations")
 
 
 # graph all results
-graph(R,S,R_ls,R_mds,R_ad)
+# graph(R,S,R_ls,R_mds,R_ad)
