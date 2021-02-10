@@ -113,3 +113,11 @@ def align(X,Xa,Y):
     X_aligned = R.dot(X - xa_c.dot(row_1)) + y_c.dot(row_1)
 
     return X_aligned
+
+
+def rs_mask(num_r,num_s):
+    W = np.zeros((num_r+num_s,num_r+num_s))
+    W[:num_r,num_r:] = np.ones((num_r,num_s))
+    W = W.T + W
+    W[num_r:,num_r:] = np.ones((num_s,num_s))
+    return W

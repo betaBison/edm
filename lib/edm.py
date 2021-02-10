@@ -42,7 +42,7 @@ def noisy_edm(X,std_dev):
             D[j,i] = sqrd_dist
     return D
 
-def rs_edm(R,S,noise):
+def rs_edm(R,S,noise=(0.,0.)):
     """
     Desc:
         creates edm from receiver and transmitter points

@@ -93,7 +93,7 @@ def alternating_descent(D,W,dims,intermidate_solutions=False):
         return X,T
 
 
-def alt_ad(D,W,dims,S,MAX_ITER=50,intermidate_solutions=False):
+def alt_ad(D,W,dims,S,MAX_ITER=50,intermidate_solutions=False,verbose=False):
     """
     Desc:
         creates mask matrix
@@ -163,14 +163,16 @@ def alt_ad(D,W,dims,S,MAX_ITER=50,intermidate_solutions=False):
         X_vec = np.concatenate((X_vec,np.expand_dims(X.copy(),axis=2)),axis=2)
 
         if np.linalg.norm(X - X_old) < CONVERGE_DISTANCE and not intermidate_solutions:
-            print("ad converged after",T,"iterations, breaking...")
+            if verbose:
+                print("ad converged after",T,"iterations, breaking...")
             break
         else:
             T += 1
             X_old = X.copy()
 
     if T == MAX_ITER:
-        print("ad forced break after",T,"iterations")
+        if verbose:
+            print("ad forced break after",T,"iterations")
 
     if intermidate_solutions:
         return X_vec,T,time_vec
