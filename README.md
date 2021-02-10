@@ -6,7 +6,7 @@ _Euclidean Distance Matrices: A Short Walk Through Theory, Algorithms and Applic
 ## Install
 Install dependencies  
 ```
-pip3 install numpy matplotlib networkx
+pip3 install numpy matplotlib networkx cvxpy
 ```
 
 ## Run
