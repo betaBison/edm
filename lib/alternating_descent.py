@@ -149,8 +149,8 @@ def alt_ad(D,W,dims,S,MAX_ITER=50,intermidate_solutions=False,verbose=False):
                     continue
 
                 cc = np.zeros((1,len(roots)))
-                for ii in range(len(roots)):
-                    cc[0,ii] = np.sum(((-X_connected[k,:] + X[k,i] + roots[ii])**2 \
+                for rr in range(len(roots)):
+                    cc[0,rr] = np.sum(((-X_connected[k,:] + X[k,i] + roots[rr])**2 \
                              + t2 - t1**2 - D_connected)**2)
 
                 deltaX = roots[np.argmin(cc)]

@@ -18,6 +18,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from lib.utils import *
 from lib.edm import edm, rs_edm
+from lib.sdr import sdr_complete_noise
 from lib.classic_mds import classic_mds
 from lib.least_squares import least_squares
 from lib.alternating_descent import alternating_descent, alt_ad
@@ -40,13 +41,6 @@ max_its = 50
 
 # dimensionality of euclidean space
 dims = 3
-
-def rs_mask(num_r,num_s):
-    W = np.zeros((num_r+num_s,num_r+num_s))
-    W[:num_r,num_r:] = np.ones((num_r,num_s))
-    W = W.T + W
-    W[num_r:,num_r:] = np.ones((num_s,num_s))
-    return W
 
 def error(truth,estimate):
     return np.mean(np.linalg.norm(truth-estimate,axis=0)**2)
@@ -158,7 +152,14 @@ for nc in range(n_compare):
         X_ls = np.hstack((R_ls_vec[:,:,its],S))
         sstress_ls.append(sstress(W,X_ls,D))
     print("least squares error:",R_ls_errors[-1])
-    # error_ls.append(error(R,R_ls))
+
+    # sdr complete
+    D_sdr = sdr_complete_noise(D,W,dims)
+
+    X_sdr = classic_mds(D_sdr,dims)
+    X_sdr = align(X_sdr,X_sdr[:,R.shape[1]:],S)
+    R_sdr = X_sdr[:,:R.shape[1]]
+    print("sdr error:",error(R,R_sdr))
 
     # print("R_ad:",R_ad)
 

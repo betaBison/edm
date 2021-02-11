@@ -165,7 +165,7 @@ R = np.array([[0.],
               [0.],
               [10.]])
 
-# receiver positions
+# peer positions
 P = np.array([[25.],
               [25.],
               [15.]])
